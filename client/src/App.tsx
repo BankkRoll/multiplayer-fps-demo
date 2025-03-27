@@ -249,7 +249,7 @@ export function App() {
                 offset={
                   new THREE.Vector2(
                     environmentSettings.chromaticAberrationOffset,
-                    environmentSettings.chromaticAberrationOffset
+                    environmentSettings.chromaticAberrationOffset,
                   )
                 }
                 radialModulation={false}

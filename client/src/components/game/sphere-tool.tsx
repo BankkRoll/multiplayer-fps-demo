@@ -172,7 +172,7 @@ export const SphereTool = ({
     const offset = new THREE.Vector3(
       SPHERE_OFFSET.x,
       SPHERE_OFFSET.y,
-      SPHERE_OFFSET.z
+      SPHERE_OFFSET.z,
     );
     offset.applyQuaternion(camera.quaternion);
 
