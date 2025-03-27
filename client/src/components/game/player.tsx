@@ -1,28 +1,28 @@
 import * as THREE from "three";
 
 import {
-  CapsuleCollider,
-  RigidBody,
-  RigidBodyProps,
-  useBeforePhysicsStep,
-  useRapier,
-} from "@react-three/rapier";
-import { Component, Entity, EntityType } from "./ecs";
-import {
   KeyboardControls,
   PointerLockControls,
   useAnimations,
   useGLTF,
   useKeyboardControls,
 } from "@react-three/drei";
-import { useEffect, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
+import {
+  CapsuleCollider,
+  RigidBody,
+  RigidBodyProps,
+  useBeforePhysicsStep,
+  useRapier,
+} from "@react-three/rapier";
+import { useEffect, useRef, useState } from "react";
+import { Component, Entity, EntityType } from "./ecs";
 
-import { PlayerAnimation } from "../../../../shared/types";
 import Rapier from "@dimforge/rapier3d-compat";
-import { useControls } from "leva";
-import { useGamepad } from "../../hooks/use-gamepad";
+import { PlayerAnimation } from "../../../../shared/types";
 import { useMultiplayer } from "../../context/MultiplayerContext";
+import { useGamepad } from "../../hooks/use-gamepad";
+import { useSettingsSafe } from "../../hooks/use-settings-safe";
 
 const _direction = new THREE.Vector3();
 const _frontVector = new THREE.Vector3();
@@ -32,9 +32,7 @@ const _characterTranslation = new THREE.Vector3();
 const _cameraWorldDirection = new THREE.Vector3();
 const _cameraPosition = new THREE.Vector3();
 
-const normalFov = 90;
-const sprintFov = 100;
-
+// Physics constants
 const characterShapeOffset = 0.1;
 const autoStepMaxHeight = 2;
 const autoStepMinWidth = 0.05;
@@ -73,6 +71,7 @@ export const Player = ({
   const gltf = useGLTF("/fps.glb");
   const { actions } = useAnimations(gltf.animations, gltf.scene);
   const { room } = useMultiplayer();
+  const { settings } = useSettingsSafe();
 
   // Hardcoded arms position (previously from Leva controls)
   const armsPosition = {
@@ -99,8 +98,39 @@ export const Player = ({
   const jumping = useRef(false);
 
   // Animation states
+  const [currentAnimation, setCurrentAnimation] = useState<PlayerAnimation>(
+    PlayerAnimation.IDLE,
+  );
   const [isWalking, setIsWalking] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
+  const [isFiring, setIsFiring] = useState(false);
+  const [isReloading, setIsReloading] = useState(false);
+
+  // Safely get keyboard controls
+  const getSafeKeyboardControls = () => {
+    try {
+      return (
+        getKeyboardControls() || {
+          forward: false,
+          backward: false,
+          left: false,
+          right: false,
+          jump: false,
+          sprint: false,
+        }
+      );
+    } catch (error) {
+      // Return fallback controls if there's an error
+      return {
+        forward: false,
+        backward: false,
+        left: false,
+        right: false,
+        jump: false,
+        sprint: false,
+      };
+    }
+  };
 
   useEffect(() => {
     const { world } = rapier;
@@ -119,6 +149,12 @@ export const Player = ({
     // Stop all animations initially
     Object.values(actions).forEach((action) => action?.stop());
 
+    // Start with idle animation
+    const idleAction = actions[PlayerAnimation.IDLE];
+    if (idleAction) {
+      idleAction.reset().play();
+    }
+
     return () => {
       world.removeCharacterController(characterController.current);
       characterController.current = null!;
@@ -128,25 +164,83 @@ export const Player = ({
   // Handle shooting animation
   useEffect(() => {
     const handleShoot = () => {
-      if (document.pointerLockElement) {
-        const fireAction = actions["Rig|Saiga_Fire"];
+      // Don't shoot if settings menu is open
+      if (document.pointerLockElement && !settings.showSettings) {
+        setIsFiring(true);
+        const fireAction = actions[PlayerAnimation.FIRING];
         if (fireAction) {
           fireAction.setLoop(THREE.LoopOnce, 1);
           fireAction.reset().play();
-        }
 
-        // // Send projectile data to server
-        // if (playerRef.current && playerRef.current.rigidBody && room) {
-        //   const position = playerRef.current.rigidBody.translation();
-        //   const cameraDirection = new THREE.Vector3();
-        //   camera.getWorldDirection(cameraDirection);
-        // }
+          // Return to previous animation after fire animation completes
+          const duration = fireAction.getClip().duration * 1000;
+          setTimeout(() => {
+            setIsFiring(false);
+          }, duration);
+        }
       }
     };
 
     window.addEventListener("pointerdown", handleShoot);
     return () => window.removeEventListener("pointerdown", handleShoot);
-  }, [actions, camera, room]);
+  }, [actions, settings.showSettings]);
+
+  // Handle reload animation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const reloadKey = settings.controls.reload?.keyboard[0] || "r";
+      // Don't reload if settings menu is open
+      if (
+        e.key.toLowerCase() === reloadKey.toLowerCase() &&
+        document.pointerLockElement &&
+        !settings.showSettings
+      ) {
+        setIsReloading(true);
+        const reloadAction = actions[PlayerAnimation.RELOADING];
+        if (reloadAction) {
+          reloadAction.setLoop(THREE.LoopOnce, 1);
+          reloadAction.reset().play();
+
+          // Return to previous animation after reload animation completes
+          const duration = reloadAction.getClip().duration * 1000;
+          setTimeout(() => {
+            setIsReloading(false);
+          }, duration);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [actions, settings.controls, settings.showSettings]);
+
+  // Handle reload animation with gamepad
+  useEffect(() => {
+    if (
+      gamepadState.buttons.reload &&
+      document.pointerLockElement &&
+      !isReloading &&
+      !settings.showSettings
+    ) {
+      setIsReloading(true);
+      const reloadAction = actions[PlayerAnimation.RELOADING];
+      if (reloadAction) {
+        reloadAction.setLoop(THREE.LoopOnce, 1);
+        reloadAction.reset().play();
+
+        // Return to previous animation after reload animation completes
+        const duration = reloadAction.getClip().duration * 1000;
+        setTimeout(() => {
+          setIsReloading(false);
+        }, duration);
+      }
+    }
+  }, [
+    actions,
+    gamepadState.buttons.reload,
+    isReloading,
+    settings.showSettings,
+  ]);
 
   useBeforePhysicsStep(() => {
     const characterRigidBody = playerRef.current.rigidBody;
@@ -155,16 +249,37 @@ export const Player = ({
 
     const characterCollider = characterRigidBody.collider(0);
 
-    const { forward, backward, left, right, jump, sprint } =
-      getKeyboardControls() as KeyControls;
+    // Get key mapping from settings
+    const getKeyboardState = (action: string): boolean => {
+      const binding = settings.controls[action]?.keyboard || [];
+
+      // Early return for special keys like forward, etc.
+      const keyboardControls = getSafeKeyboardControls();
+      if (Object.hasOwnProperty.call(keyboardControls, action)) {
+        return keyboardControls[
+          action as keyof ReturnType<typeof getSafeKeyboardControls>
+        ] as boolean;
+      }
+
+      // Otherwise check if any of the bound keys are pressed
+      return binding.some((key) => {
+        if (key === "Space") return keyboardControls.jump;
+        if (key === "Shift") return keyboardControls.sprint;
+        // Add other special mappings here
+        return false;
+      });
+    };
 
     // Combine keyboard and gamepad input
-    const moveForward = forward || gamepadState.leftStick.y < 0;
-    const moveBackward = backward || gamepadState.leftStick.y > 0;
-    const moveLeft = left || gamepadState.leftStick.x < 0;
-    const moveRight = right || gamepadState.leftStick.x > 0;
-    const isJumping = jump || gamepadState.buttons.jump;
-    const isSprinting = sprint || gamepadState.buttons.leftStickPress;
+    const moveForward =
+      getKeyboardState("forward") || gamepadState.leftStick.y < 0;
+    const moveBackward =
+      getKeyboardState("backward") || gamepadState.leftStick.y > 0;
+    const moveLeft = getKeyboardState("left") || gamepadState.leftStick.x < 0;
+    const moveRight = getKeyboardState("right") || gamepadState.leftStick.x > 0;
+    const isJumping = getKeyboardState("jump") || gamepadState.buttons.jump;
+    const isSprinting =
+      getKeyboardState("sprint") || gamepadState.buttons.leftStickPress;
 
     const speed = walkSpeed * (isSprinting ? runSpeed / walkSpeed : 1);
 
@@ -172,6 +287,19 @@ export const Player = ({
     const isMoving = moveForward || moveBackward || moveLeft || moveRight;
     setIsWalking(isMoving && !isSprinting);
     setIsRunning(isMoving && isSprinting);
+
+    // Update current animation state based on priorities
+    if (isReloading) {
+      setCurrentAnimation(PlayerAnimation.RELOADING);
+    } else if (isFiring) {
+      setCurrentAnimation(PlayerAnimation.FIRING);
+    } else if (isRunning) {
+      setCurrentAnimation(PlayerAnimation.RUNNING);
+    } else if (isWalking) {
+      setCurrentAnimation(PlayerAnimation.WALKING);
+    } else {
+      setCurrentAnimation(PlayerAnimation.IDLE);
+    }
 
     const grounded = characterController.current.computedGrounded();
 
@@ -277,10 +405,10 @@ export const Player = ({
     const currentSpeed = _characterLinvel.length();
 
     const { forward, backward, left, right } =
-      getKeyboardControls() as KeyControls;
+      getSafeKeyboardControls() as KeyControls;
     const isMoving = forward || backward || left || right;
     const isSprinting =
-      getKeyboardControls().sprint || gamepadState.buttons.leftStickPress;
+      getSafeKeyboardControls().sprint || gamepadState.buttons.leftStickPress;
 
     const translation = characterRigidBody.translation();
     onMove?.(translation as THREE.Vector3);
@@ -298,7 +426,7 @@ export const Player = ({
           y: camera.rotation.y,
           z: camera.rotation.z,
         },
-        animation: isMoving ? PlayerAnimation.WALKING : PlayerAnimation.IDLE,
+        animation: currentAnimation,
       });
     }
 
@@ -312,9 +440,8 @@ export const Player = ({
       "YXZ",
     );
 
-    // Different sensitivities for horizontal and vertical aiming
-    const CAMERA_SENSITIVITY_X = 0.04;
-    const CAMERA_SENSITIVITY_Y = 0.03;
+    // Get sensitivity with guaranteed defaults from useSettingsSafe
+    const mouseSensitivity = settings.player.mouseSensitivity;
 
     // Apply gamepad right stick for camera rotation
     if (
@@ -322,10 +449,10 @@ export const Player = ({
       (Math.abs(gamepadState.rightStick.x) > 0 ||
         Math.abs(gamepadState.rightStick.y) > 0)
     ) {
-      // Update Euler angles
-      cameraEuler.y -= gamepadState.rightStick.x * CAMERA_SENSITIVITY_X;
+      // Apply the stick values directly since sensitivity and inversion are applied in the hook
+      cameraEuler.y -= gamepadState.rightStick.x;
       cameraEuler.x = THREE.MathUtils.clamp(
-        cameraEuler.x - gamepadState.rightStick.y * CAMERA_SENSITIVITY_Y,
+        cameraEuler.x - gamepadState.rightStick.y,
         -Math.PI / 2,
         Math.PI / 2,
       );
@@ -336,8 +463,11 @@ export const Player = ({
 
     camera.position.lerp(cameraPosition, delta * 30);
 
-    // FOV change for sprint
+    // FOV change for sprint with fallback
     if (camera instanceof THREE.PerspectiveCamera) {
+      const normalFov = settings.graphics.fov;
+      const sprintFov = normalFov + 10; // Add 10 degrees for sprint
+
       camera.fov = THREE.MathUtils.lerp(
         camera.fov,
         isSprinting && currentSpeed > 0.1 ? sprintFov : normalFov,
@@ -349,20 +479,31 @@ export const Player = ({
 
   // Handle movement animations
   useEffect(() => {
-    const walkAction = actions["Rig|Saiga_Walk"];
-    const runAction = actions["Rig|Saiga_Run"];
+    // Skip animation updates during firing or reloading
+    if (isFiring || isReloading) return;
+
+    const idleAction = actions[PlayerAnimation.IDLE];
+    const walkAction = actions[PlayerAnimation.WALKING];
+    const runAction = actions[PlayerAnimation.RUNNING];
+
+    // Fade out all animations
+    const fadeOutAll = () => {
+      if (idleAction && idleAction.isRunning()) idleAction.fadeOut(0.2);
+      if (walkAction && walkAction.isRunning()) walkAction.fadeOut(0.2);
+      if (runAction && runAction.isRunning()) runAction.fadeOut(0.2);
+    };
 
     if (isRunning) {
-      walkAction?.stop();
-      runAction?.play();
+      fadeOutAll();
+      runAction?.reset().fadeIn(0.2).play();
     } else if (isWalking) {
-      runAction?.stop();
-      walkAction?.play();
+      fadeOutAll();
+      walkAction?.reset().fadeIn(0.2).play();
     } else {
-      walkAction?.stop();
-      runAction?.stop();
+      fadeOutAll();
+      idleAction?.reset().fadeIn(0.2).play();
     }
-  }, [isWalking, isRunning, actions]);
+  }, [isWalking, isRunning, isFiring, isReloading, actions]);
 
   return (
     <>
@@ -400,20 +541,36 @@ type KeyControls = {
   jump: boolean;
 };
 
-const controls = [
-  { name: "forward", keys: ["ArrowUp", "w", "W"] },
-  { name: "backward", keys: ["ArrowDown", "s", "S"] },
-  { name: "left", keys: ["ArrowLeft", "a", "A"] },
-  { name: "right", keys: ["ArrowRight", "d", "D"] },
-  { name: "jump", keys: ["Space"] },
-  { name: "sprint", keys: ["Shift"] },
-];
-
 export const PlayerControls = ({ children }: PlayerControls) => {
+  const { settings } = useSettingsSafe();
+
+  // Generate controls based on settings
+  const controlsFromSettings = [
+    {
+      name: "forward",
+      keys: settings?.controls?.forward?.keyboard || ["ArrowUp", "w", "W"],
+    },
+    {
+      name: "backward",
+      keys: settings?.controls?.backward?.keyboard || ["ArrowDown", "s", "S"],
+    },
+    {
+      name: "left",
+      keys: settings?.controls?.left?.keyboard || ["ArrowLeft", "a", "A"],
+    },
+    {
+      name: "right",
+      keys: settings?.controls?.right?.keyboard || ["ArrowRight", "d", "D"],
+    },
+    { name: "jump", keys: settings?.controls?.jump?.keyboard || ["Space"] },
+    { name: "sprint", keys: settings?.controls?.sprint?.keyboard || ["Shift"] },
+  ];
+
+  // Always render KeyboardControls for context, but make PointerLock conditional
   return (
-    <KeyboardControls map={controls}>
+    <KeyboardControls map={controlsFromSettings}>
       {children}
-      <PointerLockControls makeDefault />
+      {!settings.showSettings && <PointerLockControls makeDefault />}
     </KeyboardControls>
   );
 };

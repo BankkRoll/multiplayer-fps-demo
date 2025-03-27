@@ -1,7 +1,7 @@
 import * as THREE from "three";
 
-import React, { useEffect, useState } from "react";
 import { useAnimations, useGLTF } from "@react-three/drei";
+import React, { useEffect, useState } from "react";
 
 import { useMultiplayer } from "../../context/MultiplayerContext";
 

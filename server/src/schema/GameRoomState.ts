@@ -1,4 +1,4 @@
-import { Schema, MapSchema, type } from "@colyseus/schema";
+import { MapSchema, Schema, type } from "@colyseus/schema";
 
 class Vector3 extends Schema {
   @type("number") x: number = 0;
@@ -29,7 +29,7 @@ export class Projectile extends Schema {
   @type("string") id: string;
   @type(Vector3) position = new Vector3();
   @type(Vector3) direction = new Vector3();
-  @type("string") color: string;
+  @type("string") color: string = "#000000";
   @type("string") ownerId: string;
   @type("number") timestamp: number;
 

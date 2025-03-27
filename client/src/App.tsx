@@ -3,6 +3,11 @@
 import * as THREE from "three";
 
 import {
+  Environment,
+  MeshReflectorMaterial,
+  PerspectiveCamera,
+} from "@react-three/drei";
+import {
   BrightnessContrast,
   ChromaticAberration,
   EffectComposer,
@@ -10,22 +15,20 @@ import {
   Vignette,
 } from "@react-three/postprocessing";
 import { CuboidCollider, Physics, RigidBody } from "@react-three/rapier";
-import {
-  Environment,
-  MeshReflectorMaterial,
-  PerspectiveCamera,
-} from "@react-three/drei";
-import { HUD, defaultHUDConfig } from "./components/game/hud";
+import { useEffect, useRef, useState } from "react";
+import { HUD } from "./components/game/hud";
 import { Player, PlayerControls } from "./components/game/player";
-import { useRef, useState } from "react";
 
+import { useTexture } from "@react-three/drei";
 import { BlendFunction } from "postprocessing";
 import { Canvas } from "./components/canvas";
-import { MultiplayerProvider } from "./context/MultiplayerContext";
-import { OtherPlayers } from "./components/multiplayer/OtherPlayers";
+import { SettingsMenu } from "./components/game/SettingsMenu";
 import { SphereTool } from "./components/game/sphere-tool";
+import { OtherPlayers } from "./components/multiplayer/OtherPlayers";
+import { MultiplayerProvider } from "./context/MultiplayerContext";
+import { SettingsProvider } from "./context/SettingsContext";
 import { useLoadingAssets } from "./hooks/use-loading-assets";
-import { useTexture } from "@react-three/drei";
+import { useSettingsSafe } from "./hooks/use-settings-safe";
 
 const Scene = () => {
   const texture = useTexture("/final-texture.png");
@@ -45,6 +48,34 @@ const Scene = () => {
   const frontWallTexture = texture.clone();
   frontWallTexture.wrapS = frontWallTexture.wrapT = THREE.RepeatWrapping;
   frontWallTexture.repeat.set(12, 1); // 12 repeats horizontally to match wall width
+
+  const directionalLightRef = useRef<THREE.DirectionalLight>(null);
+  const { settings } = useSettingsSafe();
+
+  useEffect(() => {
+    // Update shadow quality based on settings
+    if (directionalLightRef.current) {
+      const shadowMapSize = getShadowMapSize(settings.graphics.shadowQuality);
+      directionalLightRef.current.shadow.mapSize.set(
+        shadowMapSize,
+        shadowMapSize,
+      );
+    }
+  }, [settings.graphics.shadowQuality]);
+
+  // Helper function to get shadow map size based on quality setting
+  const getShadowMapSize = (quality: string): number => {
+    switch (quality) {
+      case "low":
+        return 1024;
+      case "medium":
+        return 2048;
+      case "high":
+        return 4096;
+      default:
+        return 2048;
+    }
+  };
 
   return (
     <RigidBody type="fixed" position={[0, 0, 0]} colliders={false}>
@@ -91,95 +122,94 @@ const Scene = () => {
   );
 };
 
-export function App() {
+// Component that uses graphics settings
+const GameScene = () => {
   const loading = useLoadingAssets();
   const directionalLightRef = useRef<THREE.DirectionalLight>(null);
-
-  // HUD configuration state
-  const [hudConfig, setHudConfig] = useState(defaultHUDConfig);
+  const { settings } = useSettingsSafe();
 
   // Ammo state (moved from SphereTool to App for HUD)
   const [ammoCount, setAmmoCount] = useState(50);
   const [maxAmmo] = useState(50);
   const [isReloading, setIsReloading] = useState(false);
 
-  // Hardcoded character settings (previously from Leva controls)
+  // Hardcoded character settings for movement
   const characterSettings = {
     walkSpeed: 0.11,
     runSpeed: 0.15,
     jumpForce: 0.5,
   };
 
-  // Hardcoded environment settings (previously from Leva controls)
-  const environmentSettings = {
-    // Fog settings
-    fogEnabled: true,
-    fogColor: "#dbdbdb",
-    fogNear: 13,
-    fogFar: 95,
+  // Calculate fog settings
+  const fogSettings = {
+    enabled: true,
+    color: "#dbdbdb",
+    near: 13,
+    far: 95,
+  };
 
-    // Lighting settings
+  // Light settings
+  const lightSettings = {
     ambientIntensity: 1.3,
     directionalIntensity: 1,
     directionalHeight: 20,
     directionalDistance: 10,
-
-    // Post-processing settings
-    enablePostProcessing: true,
-
-    // Vignette settings
-    vignetteEnabled: true,
-    vignetteOffset: 0.5,
-    vignetteDarkness: 0.5,
-
-    // Chromatic aberration settings
-    chromaticAberrationEnabled: true,
-    chromaticAberrationOffset: 0.0005,
-
-    // Brightness/contrast settings
-    brightnessContrastEnabled: true,
-    brightness: 0.1,
-    contrast: 0.1,
-
-    // Color grading settings
-    colorGradingEnabled: true,
-    toneMapping: THREE.ACESFilmicToneMapping,
-    toneMappingExposure: 1.2,
   };
 
+  // Helper function to get shadow map size based on quality setting
+  const getShadowMapSize = (quality: string): number => {
+    switch (quality) {
+      case "low":
+        return 1024;
+      case "medium":
+        return 2048;
+      case "high":
+        return 4096;
+      default:
+        return 2048;
+    }
+  };
+
+  useEffect(() => {
+    // Update shadow quality based on settings
+    if (directionalLightRef.current) {
+      const shadowMapSize = getShadowMapSize(settings.graphics.shadowQuality);
+      directionalLightRef.current.shadow.mapSize.set(
+        shadowMapSize,
+        shadowMapSize,
+      );
+    }
+  }, [settings.graphics.shadowQuality]);
+
   return (
-    <MultiplayerProvider>
-      <HUD
-        config={hudConfig}
-        ammoCount={ammoCount}
-        maxAmmo={maxAmmo}
-        isReloading={isReloading}
-      />
+    <>
+      <HUD ammoCount={ammoCount} maxAmmo={maxAmmo} isReloading={isReloading} />
+
+      <SettingsMenu />
 
       <Canvas>
-        {environmentSettings.fogEnabled && (
+        {fogSettings.enabled && (
           <fog
             attach="fog"
-            args={[
-              environmentSettings.fogColor,
-              environmentSettings.fogNear,
-              environmentSettings.fogFar,
-            ]}
+            args={[fogSettings.color, fogSettings.near, fogSettings.far]}
           />
         )}
         <Environment preset="sunset" background blur={0.8} resolution={256} />
 
-        <ambientLight intensity={environmentSettings.ambientIntensity} />
+        <ambientLight intensity={lightSettings.ambientIntensity} />
         <directionalLight
           castShadow
           position={[
-            environmentSettings.directionalDistance,
-            environmentSettings.directionalHeight,
-            environmentSettings.directionalDistance,
+            lightSettings.directionalDistance,
+            lightSettings.directionalHeight,
+            lightSettings.directionalDistance,
           ]}
           ref={directionalLightRef}
-          intensity={environmentSettings.directionalIntensity}
-          shadow-mapSize={[4096, 4096]}
+          intensity={lightSettings.directionalIntensity}
+          shadow-mapSize={[
+            getShadowMapSize(settings.graphics.shadowQuality),
+            getShadowMapSize(settings.graphics.shadowQuality),
+          ]}
           shadow-camera-left={-30}
           shadow-camera-right={30}
           shadow-camera-top={30}
@@ -192,7 +222,7 @@ export function App() {
 
         <Physics
           debug={false}
-          paused={loading}
+          paused={loading || settings.showSettings}
           timeStep={1 / 60}
           interpolate={true}
           gravity={[0, -9.81, 0]}
@@ -207,9 +237,9 @@ export function App() {
                 if (directionalLightRef.current) {
                   const light = directionalLightRef.current;
                   light.position.x =
-                    position.x + environmentSettings.directionalDistance;
+                    position.x + lightSettings.directionalDistance;
                   light.position.z =
-                    position.z + environmentSettings.directionalDistance;
+                    position.z + lightSettings.directionalDistance;
                   light.target.position.copy(position);
                   light.target.updateMatrixWorld();
                 }
@@ -233,45 +263,44 @@ export function App() {
           rotation={[0, 0, 0]}
           near={0.1}
           far={1000}
+          fov={settings.graphics.fov}
         />
 
-        {environmentSettings.enablePostProcessing && (
+        {settings.graphics.postProcessing && (
           <EffectComposer>
-            {environmentSettings.vignetteEnabled && (
-              <Vignette
-                offset={environmentSettings.vignetteOffset}
-                darkness={environmentSettings.vignetteDarkness}
-                eskil={false}
-              />
+            {settings.graphics.enableVignette && (
+              <Vignette offset={0.5} darkness={0.5} eskil={false} />
             )}
-            {environmentSettings.chromaticAberrationEnabled && (
+            {settings.graphics.enableChromaticAberration && (
               <ChromaticAberration
-                offset={
-                  new THREE.Vector2(
-                    environmentSettings.chromaticAberrationOffset,
-                    environmentSettings.chromaticAberrationOffset,
-                  )
-                }
+                offset={new THREE.Vector2(0.0005, 0.0005)}
                 radialModulation={false}
                 modulationOffset={0}
               />
             )}
-            {environmentSettings.brightnessContrastEnabled && (
-              <BrightnessContrast
-                brightness={environmentSettings.brightness}
-                contrast={environmentSettings.contrast}
-              />
+            {settings.graphics.enableBrightnessContrast && (
+              <BrightnessContrast brightness={0.1} contrast={0.1} />
             )}
-            {environmentSettings.colorGradingEnabled && (
+            {settings.graphics.enableToneMapping && (
               <ToneMapping
                 blendFunction={BlendFunction.NORMAL}
-                mode={environmentSettings.toneMapping}
+                mode={THREE.ACESFilmicToneMapping}
               />
             )}
           </EffectComposer>
         )}
       </Canvas>
-    </MultiplayerProvider>
+    </>
+  );
+};
+
+export function App() {
+  return (
+    <SettingsProvider>
+      <MultiplayerProvider>
+        <GameScene />
+      </MultiplayerProvider>
+    </SettingsProvider>
   );
 }
 

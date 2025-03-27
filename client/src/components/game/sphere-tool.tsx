@@ -4,11 +4,13 @@ import * as THREE from "three";
 
 import { useEffect, useRef, useState } from "react";
 
+import { useFrame, useThree } from "@react-three/fiber";
 import { RigidBody } from "@react-three/rapier";
-import { useGamepad } from "../../hooks/use-gamepad";
 import { useMultiplayer } from "../../context/MultiplayerContext";
-import { useThree } from "@react-three/fiber";
+import { useSettings } from "../../context/SettingsContext";
+import { useGamepad } from "../../hooks/use-gamepad";
 
+// Rainbow colors for projectiles
 const RAINBOW_COLORS = [
   "#FF0000", // Red
   "#FF7F00", // Orange
@@ -19,12 +21,17 @@ const RAINBOW_COLORS = [
   "#9400D3", // Violet
 ];
 
+// Projectile configuration
 const SHOOT_FORCE = 45; // Speed factor for projectiles
 const SPHERE_OFFSET = {
   x: 0.12, // Slightly to the right
   y: -0.27, // Lower below crosshair
   z: -1.7, // Offset even further back
 };
+
+// Reload settings
+const RELOAD_TIME = 3000; // 3 seconds for reload
+const RELOAD_SOUND_DELAY = 300; // Delay before playing reload sound
 
 type SphereProps = {
   id: string;
@@ -80,7 +87,16 @@ export const SphereTool = ({
   const shootingInterval = useRef<number>();
   const isPointerDown = useRef(false);
   const gamepadState = useGamepad();
+  const { settings } = useSettings();
   const { room, clientId } = useMultiplayer();
+
+  // Refs for handling reload animation
+  const reloadTimeoutRef = useRef<number>();
+  const lastShootTime = useRef(0);
+  const canShoot = useRef(true);
+
+  // Check if we should reload automatically on empty
+  const shouldAutoReload = true; // Could be added to settings
 
   // Update parent component with ammo state
   useEffect(() => {
@@ -142,27 +158,80 @@ export const SphereTool = ({
     return () => clearInterval(cleanupInterval);
   }, []);
 
+  // Handle reload key press or gamepad button
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if reload key is pressed (default is 'r')
+      const reloadKey = settings.controls.reload?.keyboard[0] || "r";
+      if (e.key.toLowerCase() === reloadKey.toLowerCase()) {
+        reload();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [settings.controls]);
+
+  // Handle reload with gamepad
+  useEffect(() => {
+    if (gamepadState.buttons.reload) {
+      reload();
+    }
+  }, [gamepadState.buttons.reload]);
+
   const reload = () => {
-    if (isReloading) return;
+    if (isReloading || ammoCount >= maxAmmo) return;
 
     setIsReloading(true);
-    // Simulate reload time
+
+    // Clear any existing timeout
+    if (reloadTimeoutRef.current) {
+      window.clearTimeout(reloadTimeoutRef.current);
+    }
+
+    // Play reload sound after a small delay
     setTimeout(() => {
+      // TODO: Play reload sound
+      console.log("Playing reload sound");
+    }, RELOAD_SOUND_DELAY);
+
+    // Simulate reload time
+    reloadTimeoutRef.current = window.setTimeout(() => {
       setAmmoCount(maxAmmo);
       setIsReloading(false);
-    }, 1000);
+      canShoot.current = true;
+      reloadTimeoutRef.current = undefined;
+    }, RELOAD_TIME);
   };
 
   const shootSphere = () => {
     const pointerLocked =
       document.pointerLockElement !== null || gamepadState.connected;
-    if (!pointerLocked || isReloading || ammoCount <= 0 || !room) return;
+
+    // Check if we can shoot (not reloading, have ammo, room exists)
+    if (
+      !pointerLocked ||
+      isReloading ||
+      ammoCount <= 0 ||
+      !room ||
+      !canShoot.current
+    )
+      return;
+
+    // Rate limiting
+    const now = performance.now();
+    if (now - lastShootTime.current < 80) return; // 80ms between shots
+    lastShootTime.current = now;
 
     setAmmoCount((prev) => {
       const newCount = prev - 1;
-      if (newCount <= 0) {
-        reload();
+
+      // Auto reload when out of ammo
+      if (newCount <= 0 && shouldAutoReload) {
+        canShoot.current = false;
+        setTimeout(() => reload(), 100);
       }
+
       return newCount;
     });
 
@@ -203,7 +272,6 @@ export const SphereTool = ({
   const startShooting = () => {
     isPointerDown.current = true;
     shootSphere();
-    shootingInterval.current = window.setInterval(shootSphere, 80);
   };
 
   const stopShooting = () => {
@@ -213,24 +281,39 @@ export const SphereTool = ({
     }
   };
 
+  // Handle mouse shooting
   useEffect(() => {
-    window.addEventListener("pointerdown", startShooting);
-    window.addEventListener("pointerup", stopShooting);
-
-    // Handle gamepad shooting
-    if (gamepadState.buttons.shoot) {
-      if (!isPointerDown.current) {
+    const handlePointerDown = () => {
+      if (document.pointerLockElement) {
         startShooting();
       }
-    } else if (isPointerDown.current) {
+    };
+
+    const handlePointerUp = () => {
       stopShooting();
-    }
+    };
+
+    window.addEventListener("pointerdown", handlePointerDown);
+    window.addEventListener("pointerup", handlePointerUp);
 
     return () => {
-      window.removeEventListener("pointerdown", startShooting);
-      window.removeEventListener("pointerup", stopShooting);
+      window.removeEventListener("pointerdown", handlePointerDown);
+      window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [camera, gamepadState.buttons.shoot]);
+  }, []);
+
+  // Handle continuous shooting
+  useFrame(() => {
+    // Handle gamepad shooting
+    if (gamepadState.buttons.shoot) {
+      shootSphere();
+    }
+
+    // Handle mouse continuous shooting
+    if (isPointerDown.current) {
+      shootSphere();
+    }
+  });
 
   return (
     <group>

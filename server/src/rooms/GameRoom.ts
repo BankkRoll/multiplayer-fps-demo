@@ -1,10 +1,10 @@
-import { Room, Client } from "@colyseus/core";
-import { GameRoomState, Player, Projectile } from "../schema/GameRoomState";
+import { Client, Room } from "@colyseus/core";
 import {
   PlayerAnimation,
   PlayerInput,
   ProjectileInput,
 } from "../../../shared/types";
+import { GameRoomState, Player, Projectile } from "../schema/GameRoomState";
 
 export class GameRoom extends Room<GameRoomState> {
   private projectileIdCounter: number = 0;

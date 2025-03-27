@@ -1,7 +1,9 @@
 export enum PlayerAnimation {
-  IDLE = "idle",
-  WALKING = "walking",
-  GREETING = "greeting",
+  IDLE = "Rig|Saiga_Idle",
+  WALKING = "Rig|Saiga_Walk",
+  RUNNING = "Rig|Saiga_Run",
+  FIRING = "Rig|Saiga_Fire",
+  RELOADING = "Rig|Saiga_Reload_Full",
 }
 
 export interface Vector3 {
