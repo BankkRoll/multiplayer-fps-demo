@@ -1,9 +1,13 @@
-import { useThree } from "@react-three/fiber";
-import { RigidBody } from "@react-three/rapier";
-import { useEffect, useRef, useState } from "react";
+"use client";
+
 import * as THREE from "three";
-import { useGamepad } from "../common/hooks/use-gamepad";
-import { useMultiplayer } from "../multiplayer/MultiplayerContext";
+
+import { useEffect, useRef, useState } from "react";
+
+import { RigidBody } from "@react-three/rapier";
+import { useGamepad } from "../../hooks/use-gamepad";
+import { useMultiplayer } from "../../context/MultiplayerContext";
+import { useThree } from "@react-three/fiber";
 
 const RAINBOW_COLORS = [
   "#FF0000", // Red
@@ -56,19 +60,37 @@ const Sphere = ({ position, direction, color, radius }: SphereProps) => {
   );
 };
 
-export const SphereTool = () => {
+interface SphereToolProps {
+  onAmmoChange?: (ammo: number) => void;
+  onReloadingChange?: (isReloading: boolean) => void;
+  maxAmmo?: number;
+}
+
+export const SphereTool = ({
+  onAmmoChange,
+  onReloadingChange,
+  maxAmmo = 50,
+}: SphereToolProps) => {
   const sphereRadius = 0.11;
-  const MAX_AMMO = 50;
-  const PROJECTILE_LIFETIME = 10000; // 10 seconds
 
   const camera = useThree((s) => s.camera);
   const [spheres, setSpheres] = useState<{ [key: string]: SphereProps }>({});
-  const [ammoCount, setAmmoCount] = useState(MAX_AMMO);
+  const [ammoCount, setAmmoCount] = useState(maxAmmo);
   const [isReloading, setIsReloading] = useState(false);
   const shootingInterval = useRef<number>();
   const isPointerDown = useRef(false);
   const gamepadState = useGamepad();
   const { room, clientId } = useMultiplayer();
+
+  // Update parent component with ammo state
+  useEffect(() => {
+    onAmmoChange?.(ammoCount);
+  }, [ammoCount, onAmmoChange]);
+
+  // Update parent component with reloading state
+  useEffect(() => {
+    onReloadingChange?.(isReloading);
+  }, [isReloading, onReloadingChange]);
 
   // Listen for all spheres from the server
   useEffect(() => {
@@ -126,7 +148,7 @@ export const SphereTool = () => {
     setIsReloading(true);
     // Simulate reload time
     setTimeout(() => {
-      setAmmoCount(MAX_AMMO);
+      setAmmoCount(maxAmmo);
       setIsReloading(false);
     }, 1000);
   };
@@ -209,16 +231,6 @@ export const SphereTool = () => {
       window.removeEventListener("pointerup", stopShooting);
     };
   }, [camera, gamepadState.buttons.shoot]);
-
-  // Show ammo counter
-  useEffect(() => {
-    const ammoDisplay = document.getElementById("ammo-display");
-    if (ammoDisplay) {
-      ammoDisplay.textContent = isReloading
-        ? "RELOADING..."
-        : `AMMO: ${ammoCount}/${MAX_AMMO}`;
-    }
-  }, [ammoCount, isReloading]);
 
   return (
     <group>

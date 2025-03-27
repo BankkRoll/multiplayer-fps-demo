@@ -1,9 +1,9 @@
-import { Canvas as ThreeCanvas } from '@react-three/fiber'
-import { ReactNode } from 'react'
+import { Canvas as ThreeCanvas } from "@react-three/fiber";
+import { ReactNode } from "react";
 
 type CanvasProps = {
-  children: ReactNode
-}
+  children: ReactNode;
+};
 
 export function Canvas({ children }: CanvasProps) {
   return (
@@ -14,5 +14,5 @@ export function Canvas({ children }: CanvasProps) {
     >
       {children}
     </ThreeCanvas>
-  )
+  );
 }

@@ -1,12 +1,5 @@
-import Rapier from "@dimforge/rapier3d-compat";
-import {
-  KeyboardControls,
-  PointerLockControls,
-  useAnimations,
-  useGLTF,
-  useKeyboardControls,
-} from "@react-three/drei";
-import { useFrame, useThree } from "@react-three/fiber";
+import * as THREE from "three";
+
 import {
   CapsuleCollider,
   RigidBody,
@@ -14,13 +7,22 @@ import {
   useBeforePhysicsStep,
   useRapier,
 } from "@react-three/rapier";
-import { useControls } from "leva";
-import { useEffect, useRef, useState } from "react";
-import * as THREE from "three";
-import { PlayerAnimation } from "../../../shared/types";
-import { useGamepad } from "../common/hooks/use-gamepad";
-import { useMultiplayer } from "../multiplayer/MultiplayerContext";
 import { Component, Entity, EntityType } from "./ecs";
+import {
+  KeyboardControls,
+  PointerLockControls,
+  useAnimations,
+  useGLTF,
+  useKeyboardControls,
+} from "@react-three/drei";
+import { useEffect, useRef, useState } from "react";
+import { useFrame, useThree } from "@react-three/fiber";
+
+import { PlayerAnimation } from "../../../../shared/types";
+import Rapier from "@dimforge/rapier3d-compat";
+import { useControls } from "leva";
+import { useGamepad } from "../../hooks/use-gamepad";
+import { useMultiplayer } from "../../context/MultiplayerContext";
 
 const _direction = new THREE.Vector3();
 const _frontVector = new THREE.Vector3();
@@ -72,26 +74,19 @@ export const Player = ({
   const { actions } = useAnimations(gltf.animations, gltf.scene);
   const { room } = useMultiplayer();
 
-  const { x, y, z } = useControls(
-    "Arms Position",
-    {
-      x: { value: 0.1, min: -1, max: 1, step: 0.1 },
-      y: { value: -0.62, min: -1, max: 1, step: 0.1 },
-      z: { value: -0.2, min: -2, max: 0, step: 0.1 },
-    },
-    {
-      collapsed: true,
-      order: 998,
-      hidden: true,
-    }
-  );
+  // Hardcoded arms position (previously from Leva controls)
+  const armsPosition = {
+    x: 0.1,
+    y: -0.62,
+    z: -0.2,
+  };
 
   const rapier = useRapier();
   const camera = useThree((state) => state.camera);
   const clock = useThree((state) => state.clock);
 
   const characterController = useRef<Rapier.KinematicCharacterController>(
-    null!
+    null!,
   );
 
   const [, getKeyboardControls] = useKeyboardControls();
@@ -115,7 +110,7 @@ export const Player = ({
     characterController.current.enableAutostep(
       autoStepMaxHeight,
       autoStepMinWidth,
-      true
+      true,
     );
     characterController.current.setSlideEnabled(true);
     characterController.current.enableSnapToGround(0.1);
@@ -185,11 +180,11 @@ export const Player = ({
     _sideVector.set(Number(moveLeft) - Number(moveRight), 0, 0);
 
     const cameraWorldDirection = camera.getWorldDirection(
-      _cameraWorldDirection
+      _cameraWorldDirection,
     );
     const cameraYaw = Math.atan2(
       cameraWorldDirection.x,
-      cameraWorldDirection.z
+      cameraWorldDirection.z,
     );
 
     _direction
@@ -207,12 +202,12 @@ export const Player = ({
       x: THREE.MathUtils.lerp(
         horizontalVelocity.current.x,
         _direction.x,
-        horizontalVelocityLerpFactor
+        horizontalVelocityLerpFactor,
       ),
       z: THREE.MathUtils.lerp(
         horizontalVelocity.current.z,
         _direction.z,
-        horizontalVelocityLerpFactor
+        horizontalVelocityLerpFactor,
       ),
     };
 
@@ -259,12 +254,12 @@ export const Player = ({
     // compute collider movement and update rigid body
     characterController.current.computeColliderMovement(
       characterCollider,
-      movementDirection
+      movementDirection,
     );
 
     const translation = characterRigidBody.translation();
     const newPosition = _characterTranslation.copy(
-      translation as THREE.Vector3
+      translation as THREE.Vector3,
     );
     const movement = characterController.current.computedMovement();
     newPosition.add(movement);
@@ -310,11 +305,11 @@ export const Player = ({
     const cameraPosition = _cameraPosition.set(
       translation.x,
       translation.y + 1,
-      translation.z
+      translation.z,
     );
     const cameraEuler = new THREE.Euler().setFromQuaternion(
       camera.quaternion,
-      "YXZ"
+      "YXZ",
     );
 
     // Different sensitivities for horizontal and vertical aiming
@@ -332,7 +327,7 @@ export const Player = ({
       cameraEuler.x = THREE.MathUtils.clamp(
         cameraEuler.x - gamepadState.rightStick.y * CAMERA_SENSITIVITY_Y,
         -Math.PI / 2,
-        Math.PI / 2
+        Math.PI / 2,
       );
 
       // Apply the new rotation while maintaining up vector
@@ -346,7 +341,7 @@ export const Player = ({
       camera.fov = THREE.MathUtils.lerp(
         camera.fov,
         isSprinting && currentSpeed > 0.1 ? sprintFov : normalFov,
-        10 * delta
+        10 * delta,
       );
       camera.updateProjectionMatrix();
     }
@@ -387,7 +382,7 @@ export const Player = ({
       </Entity>
       <primitive
         object={gltf.scene}
-        position={[x, y, z]}
+        position={[armsPosition.x, armsPosition.y, armsPosition.z]}
         rotation={[0, Math.PI, 0]}
         scale={0.7}
         parent={camera}

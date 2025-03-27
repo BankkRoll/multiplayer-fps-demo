@@ -1,7 +1,9 @@
-import { useAnimations, useGLTF } from "@react-three/drei";
-import React, { useEffect, useState } from "react";
 import * as THREE from "three";
-import { useMultiplayer } from "./MultiplayerContext";
+
+import React, { useEffect, useState } from "react";
+import { useAnimations, useGLTF } from "@react-three/drei";
+
+import { useMultiplayer } from "../../context/MultiplayerContext";
 
 // Avatar representation of other players
 
@@ -66,7 +68,7 @@ export const OtherPlayers: React.FC = () => {
             position: new THREE.Vector3(
               player.position.x,
               player.position.y,
-              player.position.z
+              player.position.z,
             ),
             // Add rotation if available
             rotation: player.rotation,
