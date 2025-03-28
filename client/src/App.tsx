@@ -56,24 +56,17 @@ const Scene = () => {
     // Update shadow quality based on settings
     if (directionalLightRef.current) {
       const shadowMapSize = getShadowMapSize(settings.graphics.shadowQuality);
-      directionalLightRef.current.shadow.mapSize.set(
-        shadowMapSize,
-        shadowMapSize,
-      );
+      directionalLightRef.current.shadow.mapSize.set(shadowMapSize, shadowMapSize);
     }
   }, [settings.graphics.shadowQuality]);
 
   // Helper function to get shadow map size based on quality setting
   const getShadowMapSize = (quality: string): number => {
     switch (quality) {
-      case "low":
-        return 1024;
-      case "medium":
-        return 2048;
-      case "high":
-        return 4096;
-      default:
-        return 2048;
+      case 'low': return 1024;
+      case 'medium': return 2048;
+      case 'high': return 4096;
+      default: return 2048;
     }
   };
 
@@ -159,14 +152,10 @@ const GameScene = () => {
   // Helper function to get shadow map size based on quality setting
   const getShadowMapSize = (quality: string): number => {
     switch (quality) {
-      case "low":
-        return 1024;
-      case "medium":
-        return 2048;
-      case "high":
-        return 4096;
-      default:
-        return 2048;
+      case 'low': return 1024;
+      case 'medium': return 2048;
+      case 'high': return 4096;
+      default: return 2048;
     }
   };
 
@@ -174,16 +163,17 @@ const GameScene = () => {
     // Update shadow quality based on settings
     if (directionalLightRef.current) {
       const shadowMapSize = getShadowMapSize(settings.graphics.shadowQuality);
-      directionalLightRef.current.shadow.mapSize.set(
-        shadowMapSize,
-        shadowMapSize,
-      );
+      directionalLightRef.current.shadow.mapSize.set(shadowMapSize, shadowMapSize);
     }
   }, [settings.graphics.shadowQuality]);
 
   return (
     <>
-      <HUD ammoCount={ammoCount} maxAmmo={maxAmmo} isReloading={isReloading} />
+      <HUD
+        ammoCount={ammoCount}
+        maxAmmo={maxAmmo}
+        isReloading={isReloading}
+      />
 
       <SettingsMenu />
 
@@ -191,7 +181,11 @@ const GameScene = () => {
         {fogSettings.enabled && (
           <fog
             attach="fog"
-            args={[fogSettings.color, fogSettings.near, fogSettings.far]}
+            args={[
+              fogSettings.color,
+              fogSettings.near,
+              fogSettings.far,
+            ]}
           />
         )}
         <Environment preset="sunset" background blur={0.8} resolution={256} />
@@ -206,10 +200,7 @@ const GameScene = () => {
           ]}
           ref={directionalLightRef}
           intensity={lightSettings.directionalIntensity}
-          shadow-mapSize={[
-            getShadowMapSize(settings.graphics.shadowQuality),
-            getShadowMapSize(settings.graphics.shadowQuality),
-          ]}
+          shadow-mapSize={[getShadowMapSize(settings.graphics.shadowQuality), getShadowMapSize(settings.graphics.shadowQuality)]}
           shadow-camera-left={-30}
           shadow-camera-right={30}
           shadow-camera-top={30}
@@ -269,17 +260,29 @@ const GameScene = () => {
         {settings.graphics.postProcessing && (
           <EffectComposer>
             {settings.graphics.enableVignette && (
-              <Vignette offset={0.5} darkness={0.5} eskil={false} />
+              <Vignette
+                offset={0.5}
+                darkness={0.5}
+                eskil={false}
+              />
             )}
             {settings.graphics.enableChromaticAberration && (
               <ChromaticAberration
-                offset={new THREE.Vector2(0.0005, 0.0005)}
+                offset={
+                  new THREE.Vector2(
+                    0.0005,
+                    0.0005,
+                  )
+                }
                 radialModulation={false}
                 modulationOffset={0}
               />
             )}
             {settings.graphics.enableBrightnessContrast && (
-              <BrightnessContrast brightness={0.1} contrast={0.1} />
+              <BrightnessContrast
+                brightness={0.1}
+                contrast={0.1}
+              />
             )}
             {settings.graphics.enableToneMapping && (
               <ToneMapping

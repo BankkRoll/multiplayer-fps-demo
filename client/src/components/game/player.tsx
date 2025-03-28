@@ -98,9 +98,7 @@ export const Player = ({
   const jumping = useRef(false);
 
   // Animation states
-  const [currentAnimation, setCurrentAnimation] = useState<PlayerAnimation>(
-    PlayerAnimation.IDLE,
-  );
+  const [currentAnimation, setCurrentAnimation] = useState<PlayerAnimation>(PlayerAnimation.IDLE);
   const [isWalking, setIsWalking] = useState(false);
   const [isRunning, setIsRunning] = useState(false);
   const [isFiring, setIsFiring] = useState(false);
@@ -109,25 +107,23 @@ export const Player = ({
   // Safely get keyboard controls
   const getSafeKeyboardControls = () => {
     try {
-      return (
-        getKeyboardControls() || {
-          forward: false,
-          backward: false,
-          left: false,
-          right: false,
-          jump: false,
-          sprint: false,
-        }
-      );
+      return getKeyboardControls() || { 
+        forward: false, 
+        backward: false, 
+        left: false, 
+        right: false, 
+        jump: false, 
+        sprint: false 
+      };
     } catch (error) {
       // Return fallback controls if there's an error
-      return {
-        forward: false,
-        backward: false,
-        left: false,
-        right: false,
-        jump: false,
-        sprint: false,
+      return { 
+        forward: false, 
+        backward: false, 
+        left: false, 
+        right: false, 
+        jump: false, 
+        sprint: false 
       };
     }
   };
@@ -171,7 +167,7 @@ export const Player = ({
         if (fireAction) {
           fireAction.setLoop(THREE.LoopOnce, 1);
           fireAction.reset().play();
-
+          
           // Return to previous animation after fire animation completes
           const duration = fireAction.getClip().duration * 1000;
           setTimeout(() => {
@@ -188,19 +184,15 @@ export const Player = ({
   // Handle reload animation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      const reloadKey = settings.controls.reload?.keyboard[0] || "r";
+      const reloadKey = settings.controls.reload?.keyboard[0] || 'r';
       // Don't reload if settings menu is open
-      if (
-        e.key.toLowerCase() === reloadKey.toLowerCase() &&
-        document.pointerLockElement &&
-        !settings.showSettings
-      ) {
+      if (e.key.toLowerCase() === reloadKey.toLowerCase() && document.pointerLockElement && !settings.showSettings) {
         setIsReloading(true);
         const reloadAction = actions[PlayerAnimation.RELOADING];
         if (reloadAction) {
           reloadAction.setLoop(THREE.LoopOnce, 1);
           reloadAction.reset().play();
-
+          
           // Return to previous animation after reload animation completes
           const duration = reloadAction.getClip().duration * 1000;
           setTimeout(() => {
@@ -210,24 +202,19 @@ export const Player = ({
       }
     };
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, [actions, settings.controls, settings.showSettings]);
 
   // Handle reload animation with gamepad
   useEffect(() => {
-    if (
-      gamepadState.buttons.reload &&
-      document.pointerLockElement &&
-      !isReloading &&
-      !settings.showSettings
-    ) {
+    if (gamepadState.buttons.reload && document.pointerLockElement && !isReloading && !settings.showSettings) {
       setIsReloading(true);
       const reloadAction = actions[PlayerAnimation.RELOADING];
       if (reloadAction) {
         reloadAction.setLoop(THREE.LoopOnce, 1);
         reloadAction.reset().play();
-
+        
         // Return to previous animation after reload animation completes
         const duration = reloadAction.getClip().duration * 1000;
         setTimeout(() => {
@@ -235,12 +222,7 @@ export const Player = ({
         }, duration);
       }
     }
-  }, [
-    actions,
-    gamepadState.buttons.reload,
-    isReloading,
-    settings.showSettings,
-  ]);
+  }, [actions, gamepadState.buttons.reload, isReloading, settings.showSettings]);
 
   useBeforePhysicsStep(() => {
     const characterRigidBody = playerRef.current.rigidBody;
@@ -252,17 +234,15 @@ export const Player = ({
     // Get key mapping from settings
     const getKeyboardState = (action: string): boolean => {
       const binding = settings.controls[action]?.keyboard || [];
-
+      
       // Early return for special keys like forward, etc.
       const keyboardControls = getSafeKeyboardControls();
       if (Object.hasOwnProperty.call(keyboardControls, action)) {
-        return keyboardControls[
-          action as keyof ReturnType<typeof getSafeKeyboardControls>
-        ] as boolean;
+        return keyboardControls[action as keyof ReturnType<typeof getSafeKeyboardControls>] as boolean;
       }
-
+      
       // Otherwise check if any of the bound keys are pressed
-      return binding.some((key) => {
+      return binding.some(key => {
         if (key === "Space") return keyboardControls.jump;
         if (key === "Shift") return keyboardControls.sprint;
         // Add other special mappings here
@@ -271,15 +251,12 @@ export const Player = ({
     };
 
     // Combine keyboard and gamepad input
-    const moveForward =
-      getKeyboardState("forward") || gamepadState.leftStick.y < 0;
-    const moveBackward =
-      getKeyboardState("backward") || gamepadState.leftStick.y > 0;
+    const moveForward = getKeyboardState("forward") || gamepadState.leftStick.y < 0;
+    const moveBackward = getKeyboardState("backward") || gamepadState.leftStick.y > 0;
     const moveLeft = getKeyboardState("left") || gamepadState.leftStick.x < 0;
     const moveRight = getKeyboardState("right") || gamepadState.leftStick.x > 0;
     const isJumping = getKeyboardState("jump") || gamepadState.buttons.jump;
-    const isSprinting =
-      getKeyboardState("sprint") || gamepadState.buttons.leftStickPress;
+    const isSprinting = getKeyboardState("sprint") || gamepadState.buttons.leftStickPress;
 
     const speed = walkSpeed * (isSprinting ? runSpeed / walkSpeed : 1);
 
@@ -481,18 +458,18 @@ export const Player = ({
   useEffect(() => {
     // Skip animation updates during firing or reloading
     if (isFiring || isReloading) return;
-
+    
     const idleAction = actions[PlayerAnimation.IDLE];
     const walkAction = actions[PlayerAnimation.WALKING];
     const runAction = actions[PlayerAnimation.RUNNING];
-
+    
     // Fade out all animations
     const fadeOutAll = () => {
       if (idleAction && idleAction.isRunning()) idleAction.fadeOut(0.2);
       if (walkAction && walkAction.isRunning()) walkAction.fadeOut(0.2);
       if (runAction && runAction.isRunning()) runAction.fadeOut(0.2);
     };
-
+    
     if (isRunning) {
       fadeOutAll();
       runAction?.reset().fadeIn(0.2).play();
@@ -543,29 +520,17 @@ type KeyControls = {
 
 export const PlayerControls = ({ children }: PlayerControls) => {
   const { settings } = useSettingsSafe();
-
+  
   // Generate controls based on settings
   const controlsFromSettings = [
-    {
-      name: "forward",
-      keys: settings?.controls?.forward?.keyboard || ["ArrowUp", "w", "W"],
-    },
-    {
-      name: "backward",
-      keys: settings?.controls?.backward?.keyboard || ["ArrowDown", "s", "S"],
-    },
-    {
-      name: "left",
-      keys: settings?.controls?.left?.keyboard || ["ArrowLeft", "a", "A"],
-    },
-    {
-      name: "right",
-      keys: settings?.controls?.right?.keyboard || ["ArrowRight", "d", "D"],
-    },
+    { name: "forward", keys: settings?.controls?.forward?.keyboard || ["ArrowUp", "w", "W"] },
+    { name: "backward", keys: settings?.controls?.backward?.keyboard || ["ArrowDown", "s", "S"] },
+    { name: "left", keys: settings?.controls?.left?.keyboard || ["ArrowLeft", "a", "A"] },
+    { name: "right", keys: settings?.controls?.right?.keyboard || ["ArrowRight", "d", "D"] },
     { name: "jump", keys: settings?.controls?.jump?.keyboard || ["Space"] },
     { name: "sprint", keys: settings?.controls?.sprint?.keyboard || ["Shift"] },
   ];
-
+  
   // Always render KeyboardControls for context, but make PointerLock conditional
   return (
     <KeyboardControls map={controlsFromSettings}>

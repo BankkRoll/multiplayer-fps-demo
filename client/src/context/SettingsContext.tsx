@@ -129,7 +129,7 @@ const initializeSettings = (): GameSettings => {
   } catch (e) {
     console.error("Failed to load settings from localStorage:", e);
   }
-
+  
   return {
     controls: DEFAULT_CONTROL_BINDINGS,
     graphics: DEFAULT_GRAPHICS_SETTINGS,
@@ -155,9 +155,7 @@ type SettingsContextType = {
   resetPlayer: () => void;
   resetAudio: () => void;
   toggleSettings: () => void;
-  setActiveSettingsTab: (
-    tab: "controls" | "graphics" | "audio" | "hud",
-  ) => void;
+  setActiveSettingsTab: (tab: "controls" | "graphics" | "audio" | "hud") => void;
 };
 
 export const SettingsContext = createContext<SettingsContextType>({
@@ -176,9 +174,7 @@ export const SettingsContext = createContext<SettingsContextType>({
   setActiveSettingsTab: () => {},
 });
 
-export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [settings, setSettings] = useState<GameSettings>(initializeSettings());
 
   // Save settings to localStorage when they change
@@ -267,9 +263,7 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
     }));
   };
 
-  const setActiveSettingsTab = (
-    tab: "controls" | "graphics" | "audio" | "hud",
-  ) => {
+  const setActiveSettingsTab = (tab: "controls" | "graphics" | "audio" | "hud") => {
     setSettings((prev) => ({
       ...prev,
       activeSettingsTab: tab,
@@ -299,4 +293,4 @@ export const SettingsProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-export const useSettings = () => useContext(SettingsContext);
+export const useSettings = () => useContext(SettingsContext); 

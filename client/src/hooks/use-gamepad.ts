@@ -7,11 +7,7 @@ const STICK_DEADZONE = 0.15;
 const TRIGGER_DEADZONE = 0.1;
 
 // Stick response curve for more precise aiming
-const applyCurve = (
-  value: number,
-  sensitivity: number,
-  invert: boolean,
-): number => {
+const applyCurve = (value: number, sensitivity: number, invert: boolean): number => {
   const sign = Math.sign(value);
   const abs = Math.abs(value);
   const curvedValue = sign * Math.pow(abs, 1.5); // Exponential response curve
@@ -77,24 +73,31 @@ export function useGamepad() {
     // Apply sensitivity and inversion settings
     const rightX =
       Math.abs(gamepad.axes[2]) > STICK_DEADZONE
-        ? applyCurve(gamepad.axes[2], gamepadSensitivityX, invertX)
+        ? applyCurve(
+            gamepad.axes[2], 
+            gamepadSensitivityX, 
+            invertX
+          )
         : 0;
     const rightY =
       Math.abs(gamepad.axes[3]) > STICK_DEADZONE
-        ? applyCurve(gamepad.axes[3], gamepadSensitivityY, invertY)
+        ? applyCurve(
+            gamepad.axes[3], 
+            gamepadSensitivityY, 
+            invertY
+          )
         : 0;
 
     // Map gamepad buttons to actions based on settings
-    const jumpButtonIndex = getButtonMapping("jump")[0] ?? 0; // Default to A button
-    const sprintButtonIndex = getButtonMapping("sprint")[0] ?? 10; // Default to L3 button
-    const shootButtonIndex = getButtonMapping("primaryAction")[0] ?? 7; // Default to RT
-    const reloadButtonIndex = getButtonMapping("reload")[0] ?? 2; // Default to B button
+    const jumpButtonIndex = getButtonMapping('jump')[0] ?? 0; // Default to A button
+    const sprintButtonIndex = getButtonMapping('sprint')[0] ?? 10; // Default to L3 button
+    const shootButtonIndex = getButtonMapping('primaryAction')[0] ?? 7; // Default to RT
+    const reloadButtonIndex = getButtonMapping('reload')[0] ?? 2; // Default to B button
 
     // Get button states
     const jumpButton = gamepad.buttons[jumpButtonIndex]?.pressed || false;
     const leftStickPress = gamepad.buttons[sprintButtonIndex]?.pressed || false;
-    const shootButton =
-      gamepad.buttons[shootButtonIndex]?.value > TRIGGER_DEADZONE || false;
+    const shootButton = gamepad.buttons[shootButtonIndex]?.value > TRIGGER_DEADZONE || false;
     const reloadButton = gamepad.buttons[reloadButtonIndex]?.pressed || false;
 
     setGamepadState({
@@ -121,12 +124,12 @@ export function useGamepad() {
   useEffect(() => {
     const handleGamepadConnected = (e: GamepadEvent) => {
       console.log("Gamepad connected:", e.gamepad.id);
-      setGamepadState((prev) => ({ ...prev, connected: true }));
+      setGamepadState(prev => ({ ...prev, connected: true }));
     };
 
     const handleGamepadDisconnected = (e: GamepadEvent) => {
       console.log("Gamepad disconnected:", e.gamepad.id);
-      setGamepadState((prev) => ({ ...prev, connected: false }));
+      setGamepadState(prev => ({ ...prev, connected: false }));
     };
 
     window.addEventListener("gamepadconnected", handleGamepadConnected);
