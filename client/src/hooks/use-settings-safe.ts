@@ -68,28 +68,37 @@ const EMPTY_FUNCTIONS = {
  */
 export function useSettingsSafe() {
   const settingsContext = useSettings();
-  
+
   // Create a merged settings object to ensure all properties exist even if some are missing
   const mergedSettings = {
     ...DEFAULT_SETTINGS,
     ...settingsContext?.settings,
-    controls: { ...DEFAULT_SETTINGS.controls, ...settingsContext?.settings?.controls },
-    graphics: { ...DEFAULT_SETTINGS.graphics, ...settingsContext?.settings?.graphics },
+    controls: {
+      ...DEFAULT_SETTINGS.controls,
+      ...settingsContext?.settings?.controls,
+    },
+    graphics: {
+      ...DEFAULT_SETTINGS.graphics,
+      ...settingsContext?.settings?.graphics,
+    },
     hud: { ...DEFAULT_SETTINGS.hud, ...settingsContext?.settings?.hud },
-    player: { ...DEFAULT_SETTINGS.player, ...settingsContext?.settings?.player },
+    player: {
+      ...DEFAULT_SETTINGS.player,
+      ...settingsContext?.settings?.player,
+    },
     audio: { ...DEFAULT_SETTINGS.audio, ...settingsContext?.settings?.audio },
   };
-  
+
   // Return the context if it's available, otherwise return defaults
   if (!settingsContext || !settingsContext.settings) {
     return {
       settings: DEFAULT_SETTINGS,
-      ...EMPTY_FUNCTIONS
+      ...EMPTY_FUNCTIONS,
     };
   }
-  
+
   return {
     ...settingsContext,
     settings: mergedSettings,
   };
-} 
+}

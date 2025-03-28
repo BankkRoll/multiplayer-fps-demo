@@ -162,14 +162,14 @@ export const SphereTool = ({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Check if reload key is pressed (default is 'r')
-      const reloadKey = settings.controls.reload?.keyboard[0] || 'r';
+      const reloadKey = settings.controls.reload?.keyboard[0] || "r";
       if (e.key.toLowerCase() === reloadKey.toLowerCase()) {
         reload();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [settings.controls]);
 
   // Handle reload with gamepad
@@ -183,7 +183,7 @@ export const SphereTool = ({
     if (isReloading || ammoCount >= maxAmmo) return;
 
     setIsReloading(true);
-    
+
     // Clear any existing timeout
     if (reloadTimeoutRef.current) {
       window.clearTimeout(reloadTimeoutRef.current);
@@ -207,9 +207,16 @@ export const SphereTool = ({
   const shootSphere = () => {
     const pointerLocked =
       document.pointerLockElement !== null || gamepadState.connected;
-    
+
     // Check if we can shoot (not reloading, have ammo, room exists)
-    if (!pointerLocked || isReloading || ammoCount <= 0 || !room || !canShoot.current) return;
+    if (
+      !pointerLocked ||
+      isReloading ||
+      ammoCount <= 0 ||
+      !room ||
+      !canShoot.current
+    )
+      return;
 
     // Rate limiting
     const now = performance.now();
@@ -218,13 +225,13 @@ export const SphereTool = ({
 
     setAmmoCount((prev) => {
       const newCount = prev - 1;
-      
+
       // Auto reload when out of ammo
       if (newCount <= 0 && shouldAutoReload) {
         canShoot.current = false;
         setTimeout(() => reload(), 100);
       }
-      
+
       return newCount;
     });
 

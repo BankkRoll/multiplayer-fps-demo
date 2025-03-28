@@ -45,20 +45,20 @@ export const HUD: React.FC<HUDProps> = ({
   useEffect(() => {
     let frameCount = 0;
     let lastTime = performance.now();
-    
+
     const updateFps = () => {
       frameCount++;
       const now = performance.now();
-      
+
       if (now - lastTime > 1000) {
-        setFps(Math.round(frameCount * 1000 / (now - lastTime)));
+        setFps(Math.round((frameCount * 1000) / (now - lastTime)));
         frameCount = 0;
         lastTime = now;
       }
-      
+
       requestAnimationFrame(updateFps);
     };
-    
+
     const frameId = requestAnimationFrame(updateFps);
     return () => cancelAnimationFrame(frameId);
   }, []);
@@ -70,7 +70,7 @@ export const HUD: React.FC<HUDProps> = ({
         toggleSettings();
       }
     };
-    
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [toggleSettings]);
@@ -94,10 +94,10 @@ export const HUD: React.FC<HUDProps> = ({
   // Create crosshair based on settings
   const renderCrosshair = () => {
     if (!settings.hud.showCrosshair) return null;
-    
+
     // Get crosshair style and color from settings
-    const style = settings.hud.crosshairStyle || 'default';
-    const color = settings.hud.crosshairColor || 'rgba(255, 255, 255, 0.75)';
+    const style = settings.hud.crosshairStyle || "default";
+    const color = settings.hud.crosshairColor || "rgba(255, 255, 255, 0.75)";
 
     switch (style) {
       case "dot":
@@ -198,7 +198,7 @@ export const HUD: React.FC<HUDProps> = ({
   // Display controls info
   const renderControlsInfo = () => {
     if (!settings.hud.showControls) return null;
-    
+
     return (
       <div
         style={{
@@ -223,16 +223,17 @@ export const HUD: React.FC<HUDProps> = ({
             textAlign: "center",
           }}
         >
-          WASD to move | SPACE to jump | SHIFT to run | R to reload | ESC for settings
+          WASD to move | SPACE to jump | SHIFT to run | R to reload | ESC for
+          settings
         </div>
       </div>
     );
   };
-  
+
   // Display ammo counter
   const renderAmmo = () => {
     if (!settings.hud.showAmmo) return null;
-    
+
     return (
       <div
         style={{
@@ -253,7 +254,9 @@ export const HUD: React.FC<HUDProps> = ({
         }}
       >
         {isReloading ? (
-          <div style={{ color: "#f44336", fontWeight: "bold" }}>RELOADING...</div>
+          <div style={{ color: "#f44336", fontWeight: "bold" }}>
+            RELOADING...
+          </div>
         ) : (
           <>
             <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
@@ -268,11 +271,11 @@ export const HUD: React.FC<HUDProps> = ({
       </div>
     );
   };
-  
+
   // Display connection status
   const renderConnectionStatus = () => {
     if (!settings.hud.showConnectionStatus) return null;
-    
+
     return (
       <div
         style={{
@@ -291,10 +294,17 @@ export const HUD: React.FC<HUDProps> = ({
           Connection: {connected ? "✅ Connected" : "❌ Disconnected"}
         </div>
         <div style={{ marginBottom: "5px" }}>Room ID: {room?.id || "None"}</div>
-        <div style={{ marginBottom: "5px" }}>Client ID: {clientId || "None"}</div>
+        <div style={{ marginBottom: "5px" }}>
+          Client ID: {clientId || "None"}
+        </div>
         <div>Players in room: {playerCount}</div>
         {showFps && (
-          <div style={{ marginTop: "10px", color: fps < 30 ? "#f44336" : "#4caf50" }}>
+          <div
+            style={{
+              marginTop: "10px",
+              color: fps < 30 ? "#f44336" : "#4caf50",
+            }}
+          >
             FPS: {fps}
           </div>
         )}
